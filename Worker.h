@@ -29,7 +29,7 @@ private:
 	HWND txtOut;
 
 	static DWORD WINAPI WorkerThread(LPVOID lpParam);
-	std::string RenameFile(std::string &folder);
+	std::string RenameFile(std::string& folder);
 
 public:
 	Worker(char drive, Settings* settings);

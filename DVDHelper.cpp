@@ -26,7 +26,6 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 DVDHandler dvdHandler;
 
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -106,18 +105,22 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
-
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, 400, 500, nullptr, nullptr, hInstance, nullptr);
-
+   Settings* set = dvdHandler.GetSettings();
+   HWND hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+       CW_USEDEFAULT, set->yPos, set->wndWide, set->wndHigh, nullptr, nullptr, hInstance, nullptr);
+   //CW_USEDEFAULT
    if (!hWnd)
    {
       return FALSE;
    }
 
    ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
-
+   UpdateWindow(hWnd); 
+   //MoveWindow(hWnd, set->xPos, set->yPos, set->wndWide, set->wndHigh, false);
+   //SetWindowPos(hWnd, NULL, set->xPos, set->yPos, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+   //RECT rect;
+   //GetWindowRect(hWnd, &rect);
+   dvdHandler.SetupOutput(hWnd);
    return TRUE;
 }
 
@@ -155,9 +158,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-        {
-        dvdHandler.SetupOutput(hWnd);
-        }
+        
         break;
     case WM_COMMAND:
         {
@@ -226,19 +227,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+    //case WM_MOVE:
+    //    dvdHandler.SavePos(LOWORD(lParam), HIWORD(lParam));
+    //    break;
     case WM_SIZE:
-    {
-        int numDrives = dvdHandler.GetWorkerCount();
-        if (numDrives == 0)
+        break;
+    case WM_EXITSIZEMOVE:
+        RECT rect;
+        if(GetWindowRect(hWnd, &rect))
         {
-            return 0;
+            int width = rect.right - rect.left;
+            int height = rect.bottom - rect.top;
+            dvdHandler.WindowChanged(rect.left, rect.right, width, height);
         }
-        Settings* set = dvdHandler.GetSettings();
-        int width = (LOWORD(lParam)) / numDrives;
-        int height = HIWORD(lParam);
-        dvdHandler.ResizeOutput(width, height);
-        
-    }// repaint window 
+        // repaint window 
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);

@@ -14,6 +14,7 @@ private:
 	OMDbInfo *info = NULL;
 
 	void LoadDrives();
+	void UpdateTextPositions();
 public:
 	DVDHandler();
 	void DiskLoaded(char drive);
@@ -24,6 +25,6 @@ public:
 	}
 	int GetWorkerCount() { return (int)mapWorkers.size(); }
 	void SetupOutput(HWND hWnd);
-	void ResizeOutput(int width, int height);
+	void WindowChanged(int x, int y, int width, int height);
 };
 

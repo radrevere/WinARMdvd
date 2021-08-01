@@ -1,5 +1,6 @@
 #include "Worker.h"
 #include <mmsystem.h>
+#include <list>
 //#include "dvdread/ifo_types.h"
 #define STD_BUFFSIZE 4096
 
@@ -30,10 +31,10 @@ bool fileExists(std::string file)
 {
     WIN32_FIND_DATAA FindFileData;
     HANDLE handle = FindFirstFileA(file.c_str(), &FindFileData);
-    bool found = handle != INVALID_HANDLE_VALUE;
-    if (found)
+    bool found = false;
+    if (handle != INVALID_HANDLE_VALUE)
     {
-        //FindClose(&handle); this will crash
+        found = true;
         FindClose(handle);
     }
     return found;
@@ -78,7 +79,7 @@ std::string FindPosterUrl(std::string json)
 
 std::string GetProgress(char* buf)
 {
-    std::string percent;
+    std::string percent = " ";
     if (strncmp("PRGV", buf, 4) == 0)
     {
         // I do have a progress output
@@ -107,8 +108,8 @@ std::string GetProgress(char* buf)
         {
             total = (int)(((float)prog / (float)total) * 100);
             _itoa_s(total, curNum, 10);
-            percent = curNum;
-            percent += "%";
+            percent += curNum;
+            percent += "%\n";
         }
     }
     return percent;
@@ -186,51 +187,72 @@ std::string Worker::RenameFile(std::string& folder)
     // I don't know the name of the file makeMKV created
     // nor if it happend to RIP more than one file
     WIN32_FIND_DATAA ffd;
-    LARGE_INTEGER filesize;
-    LARGE_INTEGER largest;
-    char szDir[MAX_PATH];
+    char szTmp[MAX_PATH];
     HANDLE hFind = INVALID_HANDLE_VALUE;
     DWORD dwError = 0;
     std::string errOut = "";
     std::string filename = "";
-    filesize.QuadPart = 0;
-    largest.QuadPart = 0;
 
-    sprintf_s(szDir, "%s*", folder.c_str());
+    std::list<std::string> lstFiles;
+
+    sprintf_s(szTmp, "%s*", folder.c_str());
+
+    if (strTitle == "")
+    {
+        strTitle = "unknown";
+    }
 
     //************************************
     // TODO: rename all .mkv output
     // fmt = [title] - pt1.mkv
     //       [title] - pt2.mkv, etc...
     //************************************
-    hFind = FindFirstFileA(szDir, &ffd);
+    hFind = FindFirstFileA(szTmp, &ffd);
     do
     {
         // skip directories; it will find ./ and ../
         if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
         {
             std::string tmpStr = ffd.cFileName;
-            filesize.LowPart = ffd.nFileSizeLow;
-            filesize.HighPart = ffd.nFileSizeHigh;
-            if (filesize.QuadPart > largest.QuadPart && tmpStr.find(".mkv") > 0)
+            if (tmpStr.find(".mkv") > 0)
             {
-                filename = ffd.cFileName;
-                largest.QuadPart = filesize.QuadPart;
+                lstFiles.push_back(tmpStr);
             }
         }
     } while (FindNextFileA(hFind, &ffd) != 0);
 
-    if (filename == "")
+    if (lstFiles.size() == 0)
     {
         errOut = "Unable to find mkv file for rename.";
     }
     else
     {
-        filename = folder + filename;
-        std::string tofile = folder + strTitle + ".mkv";
-        if (MoveFileA(filename.c_str(), tofile.c_str()) == FALSE)
+        bool many = lstFiles.size() > 1;
+        std::list<std::string>::iterator itr;
+        int part = 1;
+        for (itr = lstFiles.begin(); itr != lstFiles.end(); itr++)
         {
-            errOut = "Unable to rename file " + filename;
+            filename = folder + *itr;
+            std::string tofile = folder + strTitle;
+            
+            if (many)
+            {
+                if (lstFiles.size() > set->maxFeature)
+                {
+                    sprintf_s(szTmp, MAX_PATH, " - s01e%02d", part);
+                }
+                else
+                {
+                    sprintf_s(szTmp, MAX_PATH, " - part%d", part);
+                }
+                tofile += szTmp;
+                part++;
+            }
+            tofile += ".mkv";
+            if (MoveFileA(filename.c_str(), tofile.c_str()) == FALSE)
+            {
+                errOut += "Unable to rename file " + filename;
+            }
         }
     }
 
@@ -355,7 +377,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
                     }
                     else
                     {
-                        strOutToUi += " LOADING...";
+                        strOutToUi += " LOADING... ";
                         SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
                     }
                 }
@@ -377,6 +399,11 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
         }
     }
 
+    CloseHandle(stdout_read);
+    CloseHandle(stderr_read);
+    CloseHandle(procInfo.hThread);
+    CloseHandle(procInfo.hProcess);
+
     std::string fileRoot = self->set->strOutRoot + "\\" + self->strTitle + "\\";
     strOutToUi += self->RenameFile(fileRoot);
 
@@ -385,7 +412,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
         std::string json = self->omdb->GetOmdbInfo(self->strTitle);
         if (json == "")
         {
-            strOutToUi += "Unable to get Information from OMDB\n";
+            strOutToUi += " Unable to get Information from OMDB\n";
         }
         else
         {
@@ -397,7 +424,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
                 fclose(f);
             }
             else {
-                strOutToUi += "Failed open file for writing: " + filePath + "\n";
+                strOutToUi += " Failed open file for writing: " + filePath + "\n";
             }
             std::string posterUrl = FindPosterUrl(json);
             if (posterUrl != "")
@@ -407,15 +434,16 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
                 json = self->omdb->DownloadFile(posterUrl, filePath);
                 if (json == "")
                 {
-                    strOutToUi += "Unable to download poster image\n";
+                    strOutToUi += " Unable to download poster image\n";
                 }
             }
         }
     }
-
-    strOutToUi += self->driveLetter + " - ";
-    strOutToUi += self->strTitle;
-    strOutToUi += " is DONE!";
+    
+    self->run = false;
+    CloseHandle(self->hThread);
+    self->threadId = -1;
+    self->hThread = NULL;
     if (self->set->eject)
     {
         if (!ejectDisk(self->driveLetter[0]))
@@ -424,14 +452,9 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
             strOutToUi += GetLastErrorAsString();
         }
     }
+    strOutToUi += self->driveLetter + " - ";
+    strOutToUi += self->strTitle;
+    strOutToUi += " is DONE!";
     SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
-    CloseHandle(stdout_read);
-    CloseHandle(stderr_read);
-    CloseHandle(procInfo.hProcess);
-    CloseHandle(procInfo.hThread);
-    self->run = false;
-    CloseHandle(self->hThread);
-    self->threadId = -1;
-    self->hThread = NULL;
 	return 0;
 }

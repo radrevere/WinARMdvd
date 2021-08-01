@@ -23,6 +23,12 @@ public :
 	std::string strOMDbkey;
 	int minLength;
 	int cache;
+	int maxFeature;
+	int wndWide;
+	int wndHigh;
+	int xPos;
+	int yPos;
+	bool use64bit;
 	bool robot;
 	bool decrypt;
 	bool directio;
@@ -31,6 +37,7 @@ public :
 	Settings();
 	~Settings();
 	std::string GetMkvCommand(char disk, std::string dvdName);
+	bool SaveSettings();
 
 private:
 	void LoadSettings();

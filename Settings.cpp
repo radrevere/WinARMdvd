@@ -9,10 +9,12 @@ Settings::Settings()
 	strOutRoot = "g:\\Movies\\";
 	minLength = 1000;
 	cache = 1024;
+	use64bit = true;
 	robot = true;
 	decrypt = true;
 	directio = true;
 	eject = true;
+	maxFeature = 3;
 	LoadSettings();
 }
 Settings::~Settings()
@@ -24,6 +26,19 @@ std::string Settings::GetMkvCommand(char disk, std::string dvdName)
 {
 	//C:\Program Files (x86)\MakeMKV\makemkvcon64.exe --minlength = 300 - r --decrypt --directio = true mkv dev:H:\ all g:\Movies
 	std::string out = strMkvExe;
+	if (out[out.size() - 1] != '\\')
+	{
+		out += "\\";
+	}
+
+	if (use64bit)
+	{
+		out += "makemkvcon64.exe";
+	}
+	else
+	{
+		out += "makemkvcon.exe";
+	}
 	char buf[CMD_BUF_SIZE] = { 0 };
 	if (minLength > 0)
 	{
@@ -58,6 +73,40 @@ std::string Settings::GetMkvCommand(char disk, std::string dvdName)
 	return out;
 }
 
+bool Settings::SaveSettings()
+{
+	mINI::INIFile file(INI_FILE);
+	mINI::INIStructure ini;
+	char tmpBuf[512] = { 0 };
+	if (!file.read(ini))
+	{
+		return false;
+	}
+	ini["cmd"]["mkvpath"] = strMkvExe;
+	ini["cmd"]["outroot"] = strOutRoot;
+	_itoa_s(minLength, tmpBuf, 10);
+	ini["cmd"]["minlength"] = tmpBuf;
+	_itoa_s(cache, tmpBuf, 10);
+	ini["cmd"]["cache"] = tmpBuf;
+	ini["cmd"]["robot"] = robot == true ? "1":"0";
+	ini["cmd"]["decrypt"] = decrypt == true ? "1" : "0";
+	ini["cmd"]["directio"] = directio == true ? "1" : "0";
+	ini["cmd"]["eject"] = eject == true ? "1" : "0";
+	ini["cmd"]["use64bit"] = use64bit == true ? "1" : "0";
+	ini["OMDb"]["key"] = strOMDbkey;
+	_itoa_s(maxFeature, tmpBuf, 10);
+	ini["multi"]["feature"] = tmpBuf;
+	_itoa_s(wndWide, tmpBuf, 10);
+	ini["window"]["width"] = tmpBuf;
+	_itoa_s(wndHigh, tmpBuf, 10);
+	ini["window"]["height"] = tmpBuf;
+	_itoa_s(xPos, tmpBuf, 10);
+	ini["window"]["xpos"] = tmpBuf;
+	_itoa_s(yPos, tmpBuf, 10);
+	ini["window"]["ypos"] = tmpBuf;
+	return file.write(ini);
+}
+
 void Settings::LoadSettings()
 {
 	mINI::INIFile file(INI_FILE);
@@ -82,6 +131,13 @@ void Settings::LoadSettings()
 
 	tmp = ini["cmd"]["cache"];
 	cache = atoi(tmp.c_str());
+
+	tmp = ini["cmd"]["use64bit"];
+	use64bit = true;
+	if (tmp == "0")
+	{
+		use64bit = false;
+	}
 
 	tmp = ini["cmd"]["robot"];
 	robot = true;
@@ -112,4 +168,16 @@ void Settings::LoadSettings()
 	}
 
 	strOMDbkey = ini["OMDb"]["key"];
+
+	tmp = ini["multi"]["feature"];
+	maxFeature = atoi(tmp.c_str());
+
+	tmp = ini["window"]["width"];
+	wndWide = atoi(tmp.c_str());
+	tmp = ini["window"]["height"];
+	wndHigh = atoi(tmp.c_str());
+	tmp = ini["window"]["xpos"];
+	xPos = atoi(tmp.c_str());
+	tmp = ini["window"]["ypos"];
+	yPos = atoi(tmp.c_str());
 }

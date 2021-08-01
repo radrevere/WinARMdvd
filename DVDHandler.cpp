@@ -48,10 +48,16 @@ void DVDHandler::SetupOutput(HWND parent)
 			NULL);
 		w->SetTextWindow(txtBox);
 	}
+	UpdateTextPositions();
 }
 
-void DVDHandler::ResizeOutput(int width, int height)
+void DVDHandler::UpdateTextPositions()
 {
+	int wide = set.wndWide;
+	if (mapWorkers.size() > 1)
+	{
+		wide = set.wndWide / (int)mapWorkers.size();
+	}
 	std::map<char, Worker*>::iterator it;
 	int left = 0;
 	for (it = mapWorkers.begin(); it != mapWorkers.end(); it++)
@@ -62,12 +68,23 @@ void DVDHandler::ResizeOutput(int width, int height)
 			continue;
 		}
 		MoveWindow((HWND)(hwnd),
-				left, 0,                  // starting x- and y-coordinates 
-				width,        // width of client area 
-				height,        // height of client area 
-				TRUE);                 // repaint window 
-		left += width;
+			left, 0,                  // starting x- and y-coordinates 
+			wide,        // width of client area 
+			set.wndHigh,        // height of client area 
+			TRUE);                 // repaint window 
+		left += wide;
 	}
+}
+
+void DVDHandler::WindowChanged(int x, int y, int width, int height)
+{
+	
+	set.xPos = x;
+	set.yPos = y;
+	set.wndWide = width;
+	set.wndHigh = height;
+	UpdateTextPositions();
+	set.SaveSettings();
 }
 
 void DVDHandler::DiskLoaded(char drive)
