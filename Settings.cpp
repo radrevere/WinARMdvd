@@ -116,51 +116,82 @@ void Settings::LoadSettings()
 		return;
 	}
 
-	strMkvExe = ini["cmd"]["mkvpath"];
-	strOutRoot = ini["cmd"]["outroot"];
+	std::string tmp = ini.get("cmd").get("mkvpath");
+	if (tmp != "")
+	{
+		strMkvExe = tmp;
+	}
+	// ensure the root path ends with a slash
+		if (strMkvExe[strMkvExe.size() - 1] != '\\')
+		{
+			strMkvExe += "\\";
+		}
 
+	tmp = ini.get("cmd").get("outroot");
+	if (tmp != "")
+	{
+		strOutRoot = tmp;
+	}
 	// ensure the root path ends with a slash
 	if (strOutRoot[strOutRoot.size() - 1] != '\\')
 	{
 		strOutRoot += "\\";
 	}
 
-	std::string& tmp = ini["cmd"]["minlength"];
-	minLength = atoi(tmp.c_str());
+	tmp = ini.get("cmd").get("minlength");
+	if (tmp != "")
+	{
+		minLength = atoi(tmp.c_str());
+	}
+	
+	tmp = ini.get("cmd").get("cache");
+	if (tmp != "")
+	{
+		cache = atoi(tmp.c_str());
+	}
 
-	tmp = ini["cmd"]["cache"];
-	cache = atoi(tmp.c_str());
-
-	tmp = ini["cmd"]["use64bit"];
+	tmp = ini.get("cmd").get("use64bit");
 	use64bit = true;
 	if (tmp == "0")
 	{
 		use64bit = false;
 	}
 
-	tmp = ini["cmd"]["robot"];
+	tmp = ini.get("cmd").get("robot");
 	robot = tmp == "0" ? false : true;
 
-	tmp = ini["cmd"]["decrypt"];
+	tmp = ini.get("cmd").get("decrypt");
 	decrypt = tmp == "0" ? false : true;
 
-	tmp = ini["cmd"]["directio"];
+	tmp = ini.get("cmd").get("directio");
 	directio = tmp == "0" ? false : true;
 
-	tmp = ini["cmd"]["eject"];
+	tmp = ini.get("cmd").get("eject");
 	eject = tmp == "0" ? false : true;
 
-	strOMDbkey = ini["OMDb"]["key"];
+	strOMDbkey = ini.get("OMDb").get("key");
 
-	tmp = ini["multi"]["series"];
+	tmp = ini.get("multi").get("series");
 	series = tmp=="0"?false:true;
 
-	tmp = ini["window"]["width"];
-	wndWide = atoi(tmp.c_str());
-	tmp = ini["window"]["height"];
-	wndHigh = atoi(tmp.c_str());
-	tmp = ini["window"]["xpos"];
-	xPos = atoi(tmp.c_str());
-	tmp = ini["window"]["ypos"];
-	yPos = atoi(tmp.c_str());
+	tmp = ini.get("window").get("width");
+	if (tmp != "")
+	{
+		wndWide = atoi(tmp.c_str());
+	}
+	tmp = ini.get("window").get("height");
+	if (tmp != "")
+	{
+		wndHigh = atoi(tmp.c_str());
+	}
+	tmp = ini.get("window").get("xpos");
+	if (tmp != "")
+	{
+		xPos = atoi(tmp.c_str());
+	}
+	tmp = ini.get("window").get("ypos");
+	if (tmp != "")
+	{
+		yPos = atoi(tmp.c_str());
+	}
 }
