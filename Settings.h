@@ -23,7 +23,6 @@ public :
 	std::string strOMDbkey;
 	int minLength;
 	int cache;
-	int maxFeature;
 	int wndWide;
 	int wndHigh;
 	int xPos;
@@ -33,6 +32,7 @@ public :
 	bool decrypt;
 	bool directio;
 	bool eject;
+	bool series;
 
 	Settings();
 	~Settings();

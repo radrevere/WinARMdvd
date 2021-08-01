@@ -152,6 +152,7 @@
     <ClInclude Include="OMDbInfo.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Settings.h" />
+    <ClInclude Include="SettingsDialog.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Worker.h" />
   </ItemGroup>
@@ -160,6 +161,7 @@
     <ClCompile Include="DVDHelper.cpp" />
     <ClCompile Include="OMDbInfo.cpp" />
     <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="SettingsDialog.cpp" />
     <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -14,7 +14,7 @@ Settings::Settings()
 	decrypt = true;
 	directio = true;
 	eject = true;
-	maxFeature = 3;
+	series = false;
 	LoadSettings();
 }
 Settings::~Settings()
@@ -88,14 +88,13 @@ bool Settings::SaveSettings()
 	ini["cmd"]["minlength"] = tmpBuf;
 	_itoa_s(cache, tmpBuf, 10);
 	ini["cmd"]["cache"] = tmpBuf;
-	ini["cmd"]["robot"] = robot == true ? "1":"0";
-	ini["cmd"]["decrypt"] = decrypt == true ? "1" : "0";
-	ini["cmd"]["directio"] = directio == true ? "1" : "0";
-	ini["cmd"]["eject"] = eject == true ? "1" : "0";
-	ini["cmd"]["use64bit"] = use64bit == true ? "1" : "0";
+	ini["cmd"]["robot"] = robot ? "1":"0";
+	ini["cmd"]["decrypt"] = decrypt ? "1" : "0";
+	ini["cmd"]["directio"] = directio ? "1" : "0";
+	ini["cmd"]["eject"] = eject? "1" : "0";
+	ini["cmd"]["use64bit"] = use64bit ? "1" : "0";
 	ini["OMDb"]["key"] = strOMDbkey;
-	_itoa_s(maxFeature, tmpBuf, 10);
-	ini["multi"]["feature"] = tmpBuf;
+	ini["multi"]["series"] = series?"1":"0";
 	_itoa_s(wndWide, tmpBuf, 10);
 	ini["window"]["width"] = tmpBuf;
 	_itoa_s(wndHigh, tmpBuf, 10);
@@ -140,37 +139,21 @@ void Settings::LoadSettings()
 	}
 
 	tmp = ini["cmd"]["robot"];
-	robot = true;
-	if (tmp == "0")
-	{
-		robot = false;
-	}
+	robot = tmp == "0" ? false : true;
 
 	tmp = ini["cmd"]["decrypt"];
-	decrypt = true;
-	if (tmp == "0")
-	{
-		decrypt = false;
-	}
+	decrypt = tmp == "0" ? false : true;
 
 	tmp = ini["cmd"]["directio"];
-	directio = true;
-	if (tmp == "0")
-	{
-		directio = false;
-	}
+	directio = tmp == "0" ? false : true;
 
 	tmp = ini["cmd"]["eject"];
-	eject = true;
-	if (tmp == "0")
-	{
-		eject = false;
-	}
+	eject = tmp == "0" ? false : true;
 
 	strOMDbkey = ini["OMDb"]["key"];
 
-	tmp = ini["multi"]["feature"];
-	maxFeature = atoi(tmp.c_str());
+	tmp = ini["multi"]["series"];
+	series = tmp=="0"?false:true;
 
 	tmp = ini["window"]["width"];
 	wndWide = atoi(tmp.c_str());

@@ -42,6 +42,9 @@
     <ClInclude Include="OMDbInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SettingsDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DVDHelper.cpp">
@@ -57,6 +60,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OMDbInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingsDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

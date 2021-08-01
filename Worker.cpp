@@ -237,7 +237,7 @@ std::string Worker::RenameFile(std::string& folder)
             
             if (many)
             {
-                if (lstFiles.size() > set->maxFeature)
+                if (set->series)
                 {
                     sprintf_s(szTmp, MAX_PATH, " - s01e%02d", part);
                 }

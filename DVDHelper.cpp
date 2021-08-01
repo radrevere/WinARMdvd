@@ -6,6 +6,7 @@
 #include "dbt.h"
 #include "DVDHandler.h"
 #include "Worker.h"
+#include "SettingsDialog.h"
 //#include <WinUser.h>
 #include <windef.h>
 #include <fileapi.h>
@@ -166,6 +167,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Parse the menu selections:
             switch (wmId)
             {
+            case ID_FILE_OPTIONS:
+            {
+                SettingsDialog setDlg;
+                setDlg.Show(hWnd, dvdHandler.GetSettings());
+            }
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
