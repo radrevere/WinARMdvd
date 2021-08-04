@@ -74,7 +74,13 @@ std::string FindPosterUrl(std::string json)
     }
     pos1 = json.find('\"', pos1 + strFind.size()) + 1;
     size_t pos2 = json.find('\"', pos1);
-    return json.substr(pos1, pos2 - pos1);
+    strFind = json.substr(pos1, pos2 - pos1);
+    if (strFind.find("http") == std::string::npos)
+    {
+        // not a valid URL
+        strFind = "";
+    }
+    return strFind;
 }
 
 std::string GetProgress(char* buf)
