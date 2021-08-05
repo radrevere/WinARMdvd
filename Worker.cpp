@@ -265,7 +265,34 @@ std::string Worker::RenameFile(std::string& folder)
     FindClose(hFind);
     return errOut;
 }
-
+std::string CleanupFilename(const char* name, size_t size)
+{
+    std::string outStr = "";
+    for (int i = 0; i < size; i++)
+    {
+        switch (name[i])
+        {
+            // <>:"/\|?*
+        case '<':
+        case '>':
+        case ':':
+        case '\"':
+        case '/':
+        case '\\':
+        case '|':
+        case '?':
+        case '*':
+            break;
+        case '\0':
+            // reached the end of the string
+            return outStr;
+        default:
+            outStr += name[i];
+            break;
+        }
+    }
+    return outStr;
+}
 DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
 {
     Worker* self = (Worker*)lpParam;
@@ -280,7 +307,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
     char szName[MAX_PATH] = { 0 };
     if (GetVolumeInformationA(self->driveLetter.c_str(), szName, MAX_PATH, NULL, 0, 0, NULL, 0))
     {
-        self->strTitle = szName;
+        self->strTitle = CleanupFilename(szName, strlen(szName));
         std::string outDir = self->set->strOutRoot + self->strTitle;
         CreateDirectoryA(outDir.c_str(), NULL);
         strOutToUi = "Starting ";
