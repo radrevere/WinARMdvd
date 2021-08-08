@@ -149,7 +149,9 @@
     <ClInclude Include="DVDHelper.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ini.h" />
+    <ClInclude Include="MkvParseStream.h" />
     <ClInclude Include="OMDbInfo.h" />
+    <ClInclude Include="ProcessStreamTracking.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="SettingsDialog.h" />
@@ -159,7 +161,9 @@
   <ItemGroup>
     <ClCompile Include="DVDHandler.cpp" />
     <ClCompile Include="DVDHelper.cpp" />
+    <ClCompile Include="MkvParseStream.cpp" />
     <ClCompile Include="OMDbInfo.cpp" />
+    <ClCompile Include="ProcessStreamTracking.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="SettingsDialog.cpp" />
     <ClCompile Include="Worker.cpp" />

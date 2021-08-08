@@ -5,11 +5,8 @@
 #include "OMDbInfo.h"
 using namespace std;
 
-/*typedef struct DVDInfo {
-	string strTitle;
-	int res;
-	int fps;
-};*/
+#define STD_BUFFSIZE 4096
+
 bool ejectDisk(char driveLetter);
 std::string GetLastErrorAsString();
 std::string FindPosterUrl(std::string json);
@@ -30,6 +27,7 @@ private:
 
 	static DWORD WINAPI WorkerThread(LPVOID lpParam);
 	std::string RenameFile(std::string& folder);
+	static bool RipDisk(Worker * wrkr);
 
 public:
 	Worker(char drive, Settings* settings);

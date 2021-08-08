@@ -1,7 +1,7 @@
 #include "DVDHandler.h"
 #include "OMDbInfo.h"
 #include <string>
-
+#include "MkvParseStream.h"
 DVDHandler::DVDHandler()
 {
 	info = new OMDbInfo(set.strOMDbkey);

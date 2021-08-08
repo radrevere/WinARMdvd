@@ -1,8 +1,9 @@
 #include "Worker.h"
 #include <mmsystem.h>
 #include <list>
+#include "ProcessStreamTracking.h"
+#include "MkvParseStream.h"
 //#include "dvdread/ifo_types.h"
-#define STD_BUFFSIZE 4096
 
 bool ejectDisk(char driveLetter)
 {
@@ -81,44 +82,6 @@ std::string FindPosterUrl(std::string json)
         strFind = "";
     }
     return strFind;
-}
-
-std::string GetProgress(char* buf)
-{
-    std::string percent = " ";
-    if (strncmp("PRGV", buf, 4) == 0)
-    {
-        // I do have a progress output
-        char curNum[32] = { 0 };
-        char* curPos = curNum;
-        int curIdx = 0;
-        char max[32] = { 0 };
-        char* cur = buf + 5;
-        while (*cur != '\n' && *cur != '\r' && curIdx < 64)
-        {
-            if (*cur == ',')
-            {
-                curPos = max;
-            }
-            else
-            {
-                *curPos = *cur;
-                curPos++;
-                *curPos = NULL; // ensure null termination
-            }
-            cur++;
-        }
-        int prog = atoi(curNum);
-        int total = atoi(max);
-        if (total != 0)
-        {
-            total = (int)(((float)prog / (float)total) * 100);
-            _itoa_s(total, curNum, 10);
-            percent += curNum;
-            percent += "%\n";
-        }
-    }
-    return percent;
 }
 
 Worker::Worker(char drive, Settings * settings)
@@ -323,119 +286,13 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
         return 0;
     }
 
-    std::string cmd = self->set->GetMkvCommand(self->driveLetter[0], self->strTitle);
-
-    STARTUPINFOA info = { sizeof(info) };
-    PROCESS_INFORMATION procInfo;
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = TRUE;
-    sa.lpSecurityDescriptor = NULL;
-    bool bReadStream = true;
-    HANDLE stdout_read = NULL;
-    HANDLE stdout_write = NULL;
-    HANDLE stderr_read = NULL;
-    HANDLE stderr_write = NULL;
-    if (!CreatePipe(&stderr_read, &stderr_write, &sa, 0))
-    {
-        bReadStream = false;
-    }
-    if (!SetHandleInformation(stderr_read, HANDLE_FLAG_INHERIT, 0))
-    {
-        bReadStream = false;
-    }
-    if (!CreatePipe(&stdout_read, &stdout_write, &sa, 0))
-    {
-        bReadStream = false;
-    }
-    if (!SetHandleInformation(stdout_read, HANDLE_FLAG_INHERIT, 0))
-    {
-        bReadStream = false;
-    }
-    info.hStdError = stderr_write;
-    info.hStdOutput = stdout_write;
-    info.dwFlags |= STARTF_USESTDHANDLES;
-    BOOL created = CreateProcessA(NULL, (char*)cmd.c_str(), NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &info, &procInfo);
-    if (!created)
-    {
-        if (bReadStream)
-        {
-            CloseHandle(stdout_read);
-            CloseHandle(stderr_read);
-            CloseHandle(stdout_write);
-            CloseHandle(stderr_write);
-        }
-        CloseHandle(self->hThread);
-        self->threadId = -1;
-        self->hThread = NULL;
-        return 1;
-    }
-    CloseHandle(stdout_write);
-    CloseHandle(stderr_write);
     
-    char stdBuf[STD_BUFFSIZE+1] = {0};
-    bool bSuccess = false;
-    DWORD bytesRead = 0;
-    DWORD bytesAvailable = 0;
-    DWORD bytesLeft = 0;
-    
-    while (self->run)
+    // scope the process tracker so it will clean up when it's done
+    if (!RipDisk(self))
     {
-        Sleep(1000);
-        DWORD state = WaitForSingleObject(procInfo.hProcess, 0);
-        if (state == WAIT_OBJECT_0)
-        {
-            // process has terminated
-            self->run = false;
-            //continue;
-        }
-        strOutToUi = "";
-        bytesRead = bytesAvailable = bytesLeft = 0;
-        stdBuf[0] = NULL;
-        // read from output stream
-        if (bReadStream && PeekNamedPipe(stdout_read, stdBuf, STD_BUFFSIZE, &bytesRead, &bytesAvailable, &bytesLeft))
-        {
-            if (bytesAvailable > 0)
-            {
-                bSuccess = ReadFile(stdout_read, stdBuf, STD_BUFFSIZE, &bytesRead, NULL);
-                if (bSuccess)
-                {
-                    stdBuf[bytesRead] = 0;
-                    strOutToUi = self->driveLetter + " Title: " + self->strTitle + "\n";
-                    std::string progress = GetProgress(stdBuf);
-                    if (progress != "")
-                    {
-                        strOutToUi += progress;
-                        SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
-                    }
-                    else
-                    {
-                        strOutToUi += " LOADING... ";
-                        SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
-                    }
-                }
-            }
-        }
-        stdBuf[0] = NULL;
-        bytesRead = bytesAvailable = bytesLeft = 0;
-        if (bReadStream && PeekNamedPipe(stderr_read, stdBuf, STD_BUFFSIZE, &bytesRead, &bytesAvailable, &bytesLeft))
-        {
-            if (bytesAvailable > 0)
-            {
-                bSuccess = ReadFile(stderr_read, stdBuf, STD_BUFFSIZE, &bytesRead, NULL);
-                if (bSuccess)
-                {
-                    stdBuf[bytesRead] = 0;
-                    SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)stdBuf);
-                }
-            }
-        }
+        self->run = false;
+        return 0;
     }
-
-    CloseHandle(stdout_read);
-    CloseHandle(stderr_read);
-    CloseHandle(procInfo.hThread);
-    CloseHandle(procInfo.hProcess);
 
     std::string fileRoot = self->set->strOutRoot + "\\" + self->strTitle + "\\";
     strOutToUi += self->RenameFile(fileRoot);
@@ -445,7 +302,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
         std::string json = self->omdb->GetOmdbInfo(self->strTitle);
         if (json == "")
         {
-            strOutToUi += " Unable to get Information from OMDB\n";
+            strOutToUi += " Unable to get Information from OMDB\r\n";
         }
         else
         {
@@ -457,7 +314,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
                 fclose(f);
             }
             else {
-                strOutToUi += " Failed open file for writing: " + filePath + "\n";
+                strOutToUi += " Failed open file for writing: " + filePath + "\r\n";
             }
             std::string posterUrl = FindPosterUrl(json);
             if (posterUrl != "")
@@ -467,7 +324,7 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
                 json = self->omdb->DownloadFile(posterUrl, filePath);
                 if (json == "")
                 {
-                    strOutToUi += " Unable to download poster image\n";
+                    strOutToUi += " Unable to download poster image\r\n";
                 }
             }
         }
@@ -477,12 +334,14 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
     CloseHandle(self->hThread);
     self->threadId = -1;
     self->hThread = NULL;
+
     if (self->set->eject)
     {
         if (!ejectDisk(self->driveLetter[0]))
         {
-            strOutToUi += " \nUnable to eject disc: ";
+            strOutToUi += " \r\nUnable to eject disc: ";
             strOutToUi += GetLastErrorAsString();
+            strOutToUi += "\r\n";
         }
     }
     strOutToUi += self->driveLetter + " - ";
@@ -490,4 +349,50 @@ DWORD WINAPI Worker::WorkerThread(LPVOID lpParam)
     strOutToUi += " is DONE!";
     SendMessageA(self->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
 	return 0;
+}
+
+bool Worker::RipDisk(Worker *wrkr)
+{
+    MkvParseStream progress;
+    std::string strOutToUi;
+    std::string driveInfo = wrkr->driveLetter + wrkr->strTitle + "\r\n";
+    std::string cmd = wrkr->set->GetMkvCommand(wrkr->driveLetter[0], wrkr->strTitle);
+    ProcessStreamTracking pstMakeMkv;
+    if (pstMakeMkv.StartProcess(cmd.c_str()) == FALSE)
+    {
+        strOutToUi = wrkr->driveLetter + " Unable to Start MakeMKV Process: ";
+        strOutToUi += GetLastErrorAsString();
+        SendMessageA(wrkr->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
+        return false;
+    }
+    char stdBuf[STD_BUFFSIZE + 1] = { 0 };
+    bool bSuccess = false;
+    DWORD bytesRead = 0;
+    int retVal = 0;
+    while (wrkr->run)
+    {
+        Sleep(1000);
+        retVal = pstMakeMkv.ReadFromOutStream(stdBuf, STD_BUFFSIZE, bytesRead);
+        if (retVal == ProcessStreamTracking::SUCCEEDED)
+        {
+            // process buffer data
+            strOutToUi = driveInfo;
+            strOutToUi += progress.ParseMessage(stdBuf, bytesRead);
+            SendMessageA(wrkr->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
+        }
+
+        retVal = pstMakeMkv.ReadFromErrStream(stdBuf, STD_BUFFSIZE, bytesRead);
+        if (retVal == ProcessStreamTracking::SUCCEEDED)
+        {
+            // process buffer data
+            strOutToUi = driveInfo + progress.ParseMessage(stdBuf, bytesRead);
+            SendMessageA(wrkr->txtOut, WM_SETTEXT, 0, (LPARAM)strOutToUi.c_str());
+        }
+
+        if (retVal == ProcessStreamTracking::PROC_EXITED)
+        {
+            break;
+        }
+    }
+    return true;
 }
