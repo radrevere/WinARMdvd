@@ -148,7 +148,7 @@ void Worker::SetTextWindow(HWND hwnd)
 
 bool Worker::IsStarted()
 {
-    return hThread > 0;
+    return hThread != NULL;
 }
 
 std::string Worker::RenameFile(std::string& folder)
